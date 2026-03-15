@@ -93,8 +93,9 @@ export function DistributorSignUpForm() {
       stepErrors.companyName = "Company name is required"
     }
 
-    if (!formData.licenseNumber.trim()) {
-      stepErrors.licenseNumber = "License number is required"
+    // License number is optional
+    if (formData.licenseNumber && formData.licenseNumber.trim().length < 3) {
+      stepErrors.licenseNumber = "License number must be at least 3 characters"
     }
 
     if (!formData.gstNumber.trim()) {
@@ -264,7 +265,7 @@ export function DistributorSignUpForm() {
               id="password"
               name="password"
               type="password"
-              placeholder="••••••••"
+              placeholder="••��•••••"
               value={formData.password}
               onChange={handleChange}
             />
@@ -309,7 +310,7 @@ export function DistributorSignUpForm() {
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="licenseNumber">Wholesale License Number *</Label>
+            <Label htmlFor="licenseNumber">Wholesale License Number (Optional)</Label>
             <Input
               id="licenseNumber"
               name="licenseNumber"
@@ -318,6 +319,7 @@ export function DistributorSignUpForm() {
               value={formData.licenseNumber}
               onChange={handleChange}
             />
+            <p className="text-xs text-muted-foreground">You can add this later if you don't have it now</p>
             {errors.licenseNumber && <p className="text-sm text-destructive">{errors.licenseNumber}</p>}
           </div>
 

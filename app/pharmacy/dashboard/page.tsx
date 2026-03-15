@@ -194,9 +194,14 @@ export default async function PharmacyDashboardPage() {
                 <CardHeader className="flex flex-row items-center justify-between">
                   <CardTitle>Inventory Overview</CardTitle>
                   {verification.verified && (
-                    <Link href="/pharmacy/medicines">
-                      <Button size="sm" variant="outline">View All</Button>
-                    </Link>
+                    <div className="flex gap-2">
+                      <Link href="/pharmacy/suppliers">
+                        <Button size="sm" variant="outline">Find Suppliers</Button>
+                      </Link>
+                      <Link href="/pharmacy/medicines">
+                        <Button size="sm" variant="outline">View All</Button>
+                      </Link>
+                    </div>
                   )}
                 </CardHeader>
                 <CardContent>
@@ -261,6 +266,12 @@ export default async function PharmacyDashboardPage() {
                 <CardContent className="space-y-2">
                   {verification.verified && (
                     <>
+                      <Link href="/pharmacy/suppliers" className="block">
+                        <Button variant="outline" className="w-full justify-start bg-transparent">
+                          <Package className="h-4 w-4 mr-2" />
+                          Find Suppliers
+                        </Button>
+                      </Link>
                       <Link href="/pharmacy/medicines" className="block">
                         <Button variant="outline" className="w-full justify-start bg-transparent">
                           <Package className="h-4 w-4 mr-2" />

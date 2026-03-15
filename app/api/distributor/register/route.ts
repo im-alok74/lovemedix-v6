@@ -52,9 +52,17 @@ export async function POST(request: Request) {
       )
     }
 
-    if (!companyName || !licenseNumber || !gstNumber) {
+    if (!companyName) {
       return NextResponse.json(
-        { error: "Missing required company information" },
+        { error: "Missing company name" },
+        { status: 400 }
+      )
+    }
+
+    // GST is required, license is optional
+    if (!gstNumber) {
+      return NextResponse.json(
+        { error: "GST number is required" },
         { status: 400 }
       )
     }
@@ -94,19 +102,21 @@ export async function POST(request: Request) {
       )
     }
 
-    // Check if business license number already exists
-    const existingLicense = await sql`
-      SELECT id FROM distributor_profiles WHERE license_number = ${licenseNumber}
-    ` as any[]
+    // Check if license number already exists (optional field)
+    if (licenseNumber) {
+      const existingLicense = await sql`
+        SELECT id FROM distributor_profiles WHERE license_number = ${licenseNumber}
+      ` as any[]
 
-    if (existingLicense && existingLicense.length > 0) {
-      return NextResponse.json(
-        { error: "License number already registered" },
-        { status: 409 }
-      )
+      if (existingLicense && existingLicense.length > 0) {
+        return NextResponse.json(
+          { error: "License number already registered" },
+          { status: 409 }
+        )
+      }
     }
 
-    // Check if GST number already exists
+    // Check if GST already exists
     const existingGST = await sql`
       SELECT id FROM distributor_profiles WHERE gst_number = ${gstNumber}
     ` as any[]
@@ -131,12 +141,15 @@ export async function POST(request: Request) {
     const user = userResult[0]
     const userId = user.id
 
+    // Generate a default license number if not provided (format: DL-GSTXXX-TIMESTAMP)
+    const finalLicenseNumber = licenseNumber || `DL-${gstNumber.slice(-3)}-${Date.now()}`
+
     // Create distributor profile
     const distributorResult = await sql`
       INSERT INTO distributor_profiles 
-      (user_id, company_name, license_number, gst_number, phone_number, address, city, state, pincode, service_areas, verification_status)
+      (user_id, company_name, license_number, gst_number, address, city, state, pincode, verification_status)
       VALUES 
-      (${userId}, ${companyName}, ${licenseNumber}, ${gstNumber}, ${phone}, ${streetAddress}, ${city}, ${state}, ${pincode}, ${serviceAreas}, 'pending')
+      (${userId}, ${companyName}, ${finalLicenseNumber}, ${gstNumber}, ${streetAddress}, ${city}, ${state}, ${pincode}, 'pending')
       RETURNING id
     ` as any[]
 
