@@ -61,7 +61,7 @@ export async function GET(request: NextRequest) {
           AND pi.selling_price >= ${minPrice}
           AND pi.selling_price <= ${maxPrice}
           AND m.requires_prescription = ${prescriptionValue}
-        ${sql.raw(orderClause)}
+        ORDER BY pi.selling_price ASC
         LIMIT ${limit} OFFSET ${offset}
       `
     } else if (query && category && minPrice !== null && maxPrice !== null) {
@@ -94,7 +94,7 @@ export async function GET(request: NextRequest) {
           AND m.category = ${category}
           AND pi.selling_price >= ${minPrice}
           AND pi.selling_price <= ${maxPrice}
-        ${sql.raw(orderClause)}
+        ORDER BY pi.selling_price ASC
         LIMIT ${limit} OFFSET ${offset}
       `
     } else if (query && category) {
@@ -125,7 +125,7 @@ export async function GET(request: NextRequest) {
           AND pi.stock_quantity > 0
           AND (LOWER(m.name) ILIKE ${searchQuery} OR LOWER(m.generic_name) ILIKE ${searchQuery} OR LOWER(m.manufacturer) ILIKE ${searchQuery})
           AND m.category = ${category}
-        ${sql.raw(orderClause)}
+        ORDER BY pi.selling_price ASC
         LIMIT ${limit} OFFSET ${offset}
       `
     } else if (query) {
@@ -155,7 +155,7 @@ export async function GET(request: NextRequest) {
           AND pp.verification_status = 'verified' 
           AND pi.stock_quantity > 0
           AND (LOWER(m.name) ILIKE ${searchQuery} OR LOWER(m.generic_name) ILIKE ${searchQuery} OR LOWER(m.manufacturer) ILIKE ${searchQuery})
-        ${sql.raw(orderClause)}
+        ORDER BY pi.selling_price ASC
         LIMIT ${limit} OFFSET ${offset}
       `
     } else if (category) {
@@ -185,7 +185,7 @@ export async function GET(request: NextRequest) {
           AND pp.verification_status = 'verified' 
           AND pi.stock_quantity > 0
           AND m.category = ${category}
-        ${sql.raw(orderClause)}
+        ORDER BY pi.selling_price ASC
         LIMIT ${limit} OFFSET ${offset}
       `
     } else {
@@ -215,7 +215,7 @@ export async function GET(request: NextRequest) {
         WHERE m.status = 'active' 
           AND pp.verification_status = 'verified' 
           AND pi.stock_quantity > 0
-        ${sql.raw(orderClause)}
+        ORDER BY pi.selling_price ASC
         LIMIT ${limit} OFFSET ${offset}
       `
     }
