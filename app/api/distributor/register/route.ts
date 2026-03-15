@@ -52,9 +52,17 @@ export async function POST(request: Request) {
       )
     }
 
-    if (!companyName || !licenseNumber || !gstNumber) {
+    if (!companyName) {
       return NextResponse.json(
-        { error: "Missing required company information" },
+        { error: "Missing company name" },
+        { status: 400 }
+      )
+    }
+
+    // GST is required, license is optional
+    if (!gstNumber) {
+      return NextResponse.json(
+        { error: "GST number is required" },
         { status: 400 }
       )
     }
@@ -94,21 +102,23 @@ export async function POST(request: Request) {
       )
     }
 
-    // Check if business license number already exists
-    const existingLicense = await sql`
-      SELECT id FROM distributor_profiles WHERE business_license_number = ${licenseNumber}
-    ` as any[]
+    // Check if license number already exists (optional field)
+    if (licenseNumber) {
+      const existingLicense = await sql`
+        SELECT id FROM distributor_profiles WHERE license_number = ${licenseNumber}
+      ` as any[]
 
-    if (existingLicense && existingLicense.length > 0) {
-      return NextResponse.json(
-        { error: "License number already registered" },
-        { status: 409 }
-      )
+      if (existingLicense && existingLicense.length > 0) {
+        return NextResponse.json(
+          { error: "License number already registered" },
+          { status: 409 }
+        )
+      }
     }
 
-    // Check if tax_id (GST) already exists
+    // Check if GST already exists
     const existingGST = await sql`
-      SELECT id FROM distributor_profiles WHERE tax_id = ${gstNumber}
+      SELECT id FROM distributor_profiles WHERE gst_number = ${gstNumber}
     ` as any[]
 
     if (existingGST && existingGST.length > 0) {
@@ -134,9 +144,9 @@ export async function POST(request: Request) {
     // Create distributor profile
     const distributorResult = await sql`
       INSERT INTO distributor_profiles 
-      (user_id, company_name, business_license_number, tax_id, phone_number, address_line1, city, state_province, postal_code, country, verification_status)
+      (user_id, company_name, license_number, gst_number, phone, address, city, state, pincode, verification_status)
       VALUES 
-      (${userId}, ${companyName}, ${licenseNumber}, ${gstNumber}, ${phone}, ${streetAddress}, ${city}, ${state}, ${pincode}, 'India', 'pending')
+      (${userId}, ${companyName}, ${licenseNumber || null}, ${gstNumber}, ${phone}, ${streetAddress}, ${city}, ${state}, ${pincode}, 'pending')
       RETURNING id
     ` as any[]
 
