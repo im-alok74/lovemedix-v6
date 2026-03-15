@@ -141,12 +141,15 @@ export async function POST(request: Request) {
     const user = userResult[0]
     const userId = user.id
 
+    // Generate a default license number if not provided (format: DL-GSTXXX-TIMESTAMP)
+    const finalLicenseNumber = licenseNumber || `DL-${gstNumber.slice(-3)}-${Date.now()}`
+
     // Create distributor profile
     const distributorResult = await sql`
       INSERT INTO distributor_profiles 
       (user_id, company_name, license_number, gst_number, address, city, state, pincode, verification_status)
       VALUES 
-      (${userId}, ${companyName}, ${licenseNumber || null}, ${gstNumber}, ${streetAddress}, ${city}, ${state}, ${pincode}, 'pending')
+      (${userId}, ${companyName}, ${finalLicenseNumber}, ${gstNumber}, ${streetAddress}, ${city}, ${state}, ${pincode}, 'pending')
       RETURNING id
     ` as any[]
 
