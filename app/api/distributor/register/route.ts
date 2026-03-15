@@ -96,7 +96,7 @@ export async function POST(request: Request) {
 
     // Check if business license number already exists
     const existingLicense = await sql`
-      SELECT id FROM distributor_profiles WHERE license_number = ${licenseNumber}
+      SELECT id FROM distributor_profiles WHERE business_license_number = ${licenseNumber}
     ` as any[]
 
     if (existingLicense && existingLicense.length > 0) {
@@ -106,9 +106,9 @@ export async function POST(request: Request) {
       )
     }
 
-    // Check if GST number already exists
+    // Check if tax_id (GST) already exists
     const existingGST = await sql`
-      SELECT id FROM distributor_profiles WHERE gst_number = ${gstNumber}
+      SELECT id FROM distributor_profiles WHERE tax_id = ${gstNumber}
     ` as any[]
 
     if (existingGST && existingGST.length > 0) {
@@ -134,9 +134,9 @@ export async function POST(request: Request) {
     // Create distributor profile
     const distributorResult = await sql`
       INSERT INTO distributor_profiles 
-      (user_id, company_name, license_number, gst_number, phone_number, address, city, state, pincode, service_areas, verification_status)
+      (user_id, company_name, business_license_number, tax_id, phone_number, address_line1, city, state_province, postal_code, country, verification_status)
       VALUES 
-      (${userId}, ${companyName}, ${licenseNumber}, ${gstNumber}, ${phone}, ${streetAddress}, ${city}, ${state}, ${pincode}, ${serviceAreas}, 'pending')
+      (${userId}, ${companyName}, ${licenseNumber}, ${gstNumber}, ${phone}, ${streetAddress}, ${city}, ${state}, ${pincode}, 'India', 'pending')
       RETURNING id
     ` as any[]
 
