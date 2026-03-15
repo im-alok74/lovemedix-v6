@@ -144,9 +144,9 @@ export async function POST(request: Request) {
     // Create distributor profile
     const distributorResult = await sql`
       INSERT INTO distributor_profiles 
-      (user_id, company_name, license_number, gst_number, phone, address, city, state, pincode, verification_status)
+      (user_id, company_name, license_number, gst_number, address, city, state, pincode, verification_status)
       VALUES 
-      (${userId}, ${companyName}, ${licenseNumber || null}, ${gstNumber}, ${phone}, ${streetAddress}, ${city}, ${state}, ${pincode}, 'pending')
+      (${userId}, ${companyName}, ${licenseNumber || null}, ${gstNumber}, ${streetAddress}, ${city}, ${state}, ${pincode}, 'pending')
       RETURNING id
     ` as any[]
 
