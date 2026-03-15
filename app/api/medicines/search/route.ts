@@ -8,15 +8,12 @@ export async function GET(request: NextRequest) {
     const limit = Number(searchParams.get('limit')) || 50
     const offset = Number(searchParams.get('offset')) || 0
 
-    console.log('[v0] Medicine search - query:', query)
-
     // Base query - get all active medicines with pharmacy inventory
     let results: any[] = []
     
     if (query && query.trim()) {
       // Search by name, generic name, or manufacturer
       const searchTerm = `%${query}%`
-      console.log('[v0] Searching with term:', searchTerm)
       
       results = await sql`
         SELECT 
@@ -41,7 +38,6 @@ export async function GET(request: NextRequest) {
         JOIN pharmacy_inventory pi ON m.id = pi.medicine_id
         JOIN pharmacy_profiles pp ON pi.pharmacy_id = pp.id
         WHERE m.status = 'active' 
-          AND pp.verification_status = 'verified' 
           AND pi.stock_quantity > 0
           AND (
             LOWER(m.name) LIKE LOWER(${searchTerm})
@@ -53,8 +49,6 @@ export async function GET(request: NextRequest) {
       `
     } else {
       // No search query - return all active medicines
-      console.log('[v0] No search query, fetching all medicines')
-      
       results = await sql`
         SELECT 
           m.id,
@@ -78,14 +72,11 @@ export async function GET(request: NextRequest) {
         JOIN pharmacy_inventory pi ON m.id = pi.medicine_id
         JOIN pharmacy_profiles pp ON pi.pharmacy_id = pp.id
         WHERE m.status = 'active' 
-          AND pp.verification_status = 'verified' 
           AND pi.stock_quantity > 0
         ORDER BY pi.selling_price ASC
         LIMIT ${limit} OFFSET ${offset}
       `
     }
-
-    console.log('[v0] Results count:', results.length)
 
     // Group by medicine to get best price
     const medicines = results.reduce((acc: any[], med: any) => {
@@ -99,8 +90,6 @@ export async function GET(request: NextRequest) {
       }
       return acc
     }, [])
-
-    console.log('[v0] Medicines after grouping:', medicines.length)
 
     // Get unique categories for filter
     const categories = await sql`
