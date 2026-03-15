@@ -5,32 +5,19 @@ export async function GET(request: NextRequest) {
   try {
     const searchParams = request.nextUrl.searchParams
     const query = searchParams.get('q') || ''
-    const category = searchParams.get('category') || ''
-    const minPrice = searchParams.get('minPrice') ? Number(searchParams.get('minPrice')) : null
-    const maxPrice = searchParams.get('maxPrice') ? Number(searchParams.get('maxPrice')) : null
-    const requiresPrescription = searchParams.get('prescription')
-    const sortBy = searchParams.get('sortBy') || 'price_low'
     const limit = Number(searchParams.get('limit')) || 50
     const offset = Number(searchParams.get('offset')) || 0
 
-    // Build the search query dynamically based on filters
+    console.log('[v0] Medicine search - query:', query)
+
+    // Base query - get all active medicines with pharmacy inventory
     let results: any[] = []
-
-    const searchQuery = '%' + query + '%'
-    const prescriptionValue = requiresPrescription === 'true' ? true : requiresPrescription === 'false' ? false : null
-
-    // Determine order clause
-    let orderClause = 'ORDER BY pi.selling_price ASC'
-    if (sortBy === 'price_high') {
-      orderClause = 'ORDER BY pi.selling_price DESC'
-    } else if (sortBy === 'name') {
-      orderClause = 'ORDER BY m.name ASC'
-    } else if (sortBy === 'newest') {
-      orderClause = 'ORDER BY m.created_at DESC'
-    }
-
-    // Execute query based on filter combinations
-    if (query && category && minPrice !== null && maxPrice !== null && prescriptionValue !== null) {
+    
+    if (query && query.trim()) {
+      // Search by name, generic name, or manufacturer
+      const searchTerm = `%${query}%`
+      console.log('[v0] Searching with term:', searchTerm)
+      
       results = await sql`
         SELECT 
           m.id,
@@ -56,140 +43,18 @@ export async function GET(request: NextRequest) {
         WHERE m.status = 'active' 
           AND pp.verification_status = 'verified' 
           AND pi.stock_quantity > 0
-          AND (LOWER(m.name) ILIKE ${searchQuery} OR LOWER(m.generic_name) ILIKE ${searchQuery} OR LOWER(m.manufacturer) ILIKE ${searchQuery})
-          AND m.category = ${category}
-          AND pi.selling_price >= ${minPrice}
-          AND pi.selling_price <= ${maxPrice}
-          AND m.requires_prescription = ${prescriptionValue}
-        ORDER BY pi.selling_price ASC
-        LIMIT ${limit} OFFSET ${offset}
-      `
-    } else if (query && category && minPrice !== null && maxPrice !== null) {
-      results = await sql`
-        SELECT 
-          m.id,
-          m.name,
-          m.generic_name,
-          m.manufacturer,
-          m.category,
-          m.strength,
-          m.form,
-          m.pack_size,
-          m.mrp,
-          m.image_url,
-          m.requires_prescription,
-          pi.selling_price,
-          pi.discount_percentage,
-          pp.pharmacy_name,
-          pp.id as pharmacy_id,
-          (pi.selling_price * (1 - pi.discount_percentage / 100)) as final_price,
-          COUNT(*) OVER () as total_count
-        FROM medicines m
-        JOIN pharmacy_inventory pi ON m.id = pi.medicine_id
-        JOIN pharmacy_profiles pp ON pi.pharmacy_id = pp.id
-        WHERE m.status = 'active' 
-          AND pp.verification_status = 'verified' 
-          AND pi.stock_quantity > 0
-          AND (LOWER(m.name) ILIKE ${searchQuery} OR LOWER(m.generic_name) ILIKE ${searchQuery} OR LOWER(m.manufacturer) ILIKE ${searchQuery})
-          AND m.category = ${category}
-          AND pi.selling_price >= ${minPrice}
-          AND pi.selling_price <= ${maxPrice}
-        ORDER BY pi.selling_price ASC
-        LIMIT ${limit} OFFSET ${offset}
-      `
-    } else if (query && category) {
-      results = await sql`
-        SELECT 
-          m.id,
-          m.name,
-          m.generic_name,
-          m.manufacturer,
-          m.category,
-          m.strength,
-          m.form,
-          m.pack_size,
-          m.mrp,
-          m.image_url,
-          m.requires_prescription,
-          pi.selling_price,
-          pi.discount_percentage,
-          pp.pharmacy_name,
-          pp.id as pharmacy_id,
-          (pi.selling_price * (1 - pi.discount_percentage / 100)) as final_price,
-          COUNT(*) OVER () as total_count
-        FROM medicines m
-        JOIN pharmacy_inventory pi ON m.id = pi.medicine_id
-        JOIN pharmacy_profiles pp ON pi.pharmacy_id = pp.id
-        WHERE m.status = 'active' 
-          AND pp.verification_status = 'verified' 
-          AND pi.stock_quantity > 0
-          AND (LOWER(m.name) ILIKE ${searchQuery} OR LOWER(m.generic_name) ILIKE ${searchQuery} OR LOWER(m.manufacturer) ILIKE ${searchQuery})
-          AND m.category = ${category}
-        ORDER BY pi.selling_price ASC
-        LIMIT ${limit} OFFSET ${offset}
-      `
-    } else if (query) {
-      results = await sql`
-        SELECT 
-          m.id,
-          m.name,
-          m.generic_name,
-          m.manufacturer,
-          m.category,
-          m.strength,
-          m.form,
-          m.pack_size,
-          m.mrp,
-          m.image_url,
-          m.requires_prescription,
-          pi.selling_price,
-          pi.discount_percentage,
-          pp.pharmacy_name,
-          pp.id as pharmacy_id,
-          (pi.selling_price * (1 - pi.discount_percentage / 100)) as final_price,
-          COUNT(*) OVER () as total_count
-        FROM medicines m
-        JOIN pharmacy_inventory pi ON m.id = pi.medicine_id
-        JOIN pharmacy_profiles pp ON pi.pharmacy_id = pp.id
-        WHERE m.status = 'active' 
-          AND pp.verification_status = 'verified' 
-          AND pi.stock_quantity > 0
-          AND (LOWER(m.name) ILIKE ${searchQuery} OR LOWER(m.generic_name) ILIKE ${searchQuery} OR LOWER(m.manufacturer) ILIKE ${searchQuery})
-        ORDER BY pi.selling_price ASC
-        LIMIT ${limit} OFFSET ${offset}
-      `
-    } else if (category) {
-      results = await sql`
-        SELECT 
-          m.id,
-          m.name,
-          m.generic_name,
-          m.manufacturer,
-          m.category,
-          m.strength,
-          m.form,
-          m.pack_size,
-          m.mrp,
-          m.image_url,
-          m.requires_prescription,
-          pi.selling_price,
-          pi.discount_percentage,
-          pp.pharmacy_name,
-          pp.id as pharmacy_id,
-          (pi.selling_price * (1 - pi.discount_percentage / 100)) as final_price,
-          COUNT(*) OVER () as total_count
-        FROM medicines m
-        JOIN pharmacy_inventory pi ON m.id = pi.medicine_id
-        JOIN pharmacy_profiles pp ON pi.pharmacy_id = pp.id
-        WHERE m.status = 'active' 
-          AND pp.verification_status = 'verified' 
-          AND pi.stock_quantity > 0
-          AND m.category = ${category}
+          AND (
+            LOWER(m.name) LIKE LOWER(${searchTerm})
+            OR LOWER(m.generic_name) LIKE LOWER(${searchTerm})
+            OR LOWER(m.manufacturer) LIKE LOWER(${searchTerm})
+          )
         ORDER BY pi.selling_price ASC
         LIMIT ${limit} OFFSET ${offset}
       `
     } else {
-      // No filters - return all active medicines
+      // No search query - return all active medicines
+      console.log('[v0] No search query, fetching all medicines')
+      
       results = await sql`
         SELECT 
           m.id,
@@ -219,6 +84,8 @@ export async function GET(request: NextRequest) {
         LIMIT ${limit} OFFSET ${offset}
       `
     }
+
+    console.log('[v0] Results count:', results.length)
 
     // Group by medicine to get best price
     const medicines = results.reduce((acc: any[], med: any) => {
@@ -226,10 +93,14 @@ export async function GET(request: NextRequest) {
       if (!existing) {
         acc.push(med)
       } else if (med.final_price < existing.final_price) {
-        acc[acc.indexOf(existing)] = med
+        // Replace with better price
+        const idx = acc.indexOf(existing)
+        acc[idx] = med
       }
       return acc
     }, [])
+
+    console.log('[v0] Medicines after grouping:', medicines.length)
 
     // Get unique categories for filter
     const categories = await sql`
@@ -238,7 +109,7 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({
       medicines,
-      categories: (categories as any[]).map((c) => c.category),
+      categories: Array.isArray(categories) ? (categories as any[]).map((c) => c.category) : [],
       total: medicines.length > 0 ? medicines[0].total_count : 0,
       limit,
       offset
