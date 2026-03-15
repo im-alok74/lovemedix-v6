@@ -10,7 +10,7 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
     // Await params if it's a Promise (Next.js runtime behavior)
     const resolvedParams = await Promise.resolve(params)
     const userId = Number(resolvedParams.id)
-    console.log('[ADMIN USERS] PATCH called with userId:', userId, 'raw:', resolvedParams.id)
+    
     if (isNaN(userId)) {
       return NextResponse.json({ error: 'Invalid user ID' }, { status: 400 })
     }
@@ -21,23 +21,26 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
       return NextResponse.json({ error: 'No fields provided for update' }, { status: 400 })
     }
 
-    const updates: string[] = []
-    const values: (string | number)[] = []
-
-    if (user_type) {
-      updates.push(`user_type = ${sql(user_type)}`)
+    // Build update dynamically
+    if (user_type && status) {
+      await sql`
+        UPDATE users
+        SET user_type = ${user_type}, status = ${status}, updated_at = CURRENT_TIMESTAMP
+        WHERE id = ${userId}
+      `
+    } else if (user_type) {
+      await sql`
+        UPDATE users
+        SET user_type = ${user_type}, updated_at = CURRENT_TIMESTAMP
+        WHERE id = ${userId}
+      `
+    } else if (status) {
+      await sql`
+        UPDATE users
+        SET status = ${status}, updated_at = CURRENT_TIMESTAMP
+        WHERE id = ${userId}
+      `
     }
-
-    if (status) {
-      updates.push(`status = ${sql(status)}`)
-    }
-
-    // Build and execute update
-    await sql`
-      UPDATE users
-      SET ${sql.raw(updates.join(', '))}, updated_at = CURRENT_TIMESTAMP
-      WHERE id = ${userId}
-    `
 
     return NextResponse.json({ success: true, message: 'User updated successfully' })
   } catch (error: any) {
@@ -57,7 +60,7 @@ export async function DELETE(request: NextRequest, { params }: { params: { id: s
     // Await params if it's a Promise (Next.js runtime behavior)
     const resolvedParams = await Promise.resolve(params)
     const userId = Number(resolvedParams.id)
-    console.log('[ADMIN USERS] DELETE called with userId:', userId, 'raw:', resolvedParams.id)
+    
     if (isNaN(userId)) {
       return NextResponse.json({ error: 'Invalid user ID' }, { status: 400 })
     }

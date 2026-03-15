@@ -16,18 +16,16 @@ export async function POST(request: Request) {
     const {
       email,
       password,
-      confirmPassword,
       fullName,
       phone,
-      companyName,
+      pharmacyName,
       licenseNumber,
       gstNumber,
-      streetAddress,
-      landmark,
+      address,
       city,
       state,
       pincode,
-      serviceAreas,
+      is24x7,
     } = body
 
     // Validation
@@ -38,46 +36,23 @@ export async function POST(request: Request) {
       )
     }
 
-    if (password !== confirmPassword) {
+    if (password.length < 6) {
       return NextResponse.json(
-        { error: "Passwords do not match" },
+        { error: "Password must be at least 6 characters" },
         { status: 400 }
       )
     }
 
-    if (password.length < 8) {
+    if (!pharmacyName || !licenseNumber) {
       return NextResponse.json(
-        { error: "Password must be at least 8 characters" },
+        { error: "Missing required pharmacy information" },
         { status: 400 }
       )
     }
 
-    if (!companyName || !licenseNumber || !gstNumber) {
-      return NextResponse.json(
-        { error: "Missing required company information" },
-        { status: 400 }
-      )
-    }
-
-    if (!streetAddress || !city || !state || !pincode) {
+    if (!address || !city || !state || !pincode) {
       return NextResponse.json(
         { error: "Missing required address information" },
-        { status: 400 }
-      )
-    }
-
-    // GST Format Validation: 15-digit GSTIN
-    if (!/^\d{2}[A-Z]{5}\d{4}[A-Z]{1}[A-Z\d]{1}[Z]{1}[A-Z\d]{1}$/.test(gstNumber)) {
-      return NextResponse.json(
-        { error: "Invalid GST format" },
-        { status: 400 }
-      )
-    }
-
-    // Pincode Format Validation
-    if (!/^\d{6}$/.test(pincode)) {
-      return NextResponse.json(
-        { error: "Invalid pincode format" },
         { status: 400 }
       )
     }
@@ -85,18 +60,18 @@ export async function POST(request: Request) {
     // Check if email already exists
     const existingEmail = await sql`
       SELECT id FROM users WHERE email = ${email}
-    `
+    ` as any[]
 
-    if (existingEmail.length > 0) {
+    if (existingEmail && existingEmail.length > 0) {
       return NextResponse.json(
         { error: "Email already registered" },
         { status: 409 }
       )
     }
 
-    // Check if business license number already exists
+    // Check if license number already exists
     const existingLicense = await sql`
-      SELECT id FROM distributor_profiles WHERE license_number = ${licenseNumber}
+      SELECT id FROM pharmacy_profiles WHERE license_number = ${licenseNumber}
     ` as any[]
 
     if (existingLicense && existingLicense.length > 0) {
@@ -106,38 +81,26 @@ export async function POST(request: Request) {
       )
     }
 
-    // Check if GST number already exists
-    const existingGST = await sql`
-      SELECT id FROM distributor_profiles WHERE gst_number = ${gstNumber}
-    ` as any[]
-
-    if (existingGST && existingGST.length > 0) {
-      return NextResponse.json(
-        { error: "GST number already registered" },
-        { status: 409 }
-      )
-    }
-
     // Hash password
     const passwordHash = await bcrypt.hash(password, 10)
 
     // Create user
     const userResult = await sql`
-      INSERT INTO users (email, password_hash, full_name, phone, user_type)
-      VALUES (${email}, ${passwordHash}, ${fullName}, ${phone}, 'distributor')
+      INSERT INTO users (email, password_hash, full_name, phone, user_type, status)
+      VALUES (${email}, ${passwordHash}, ${fullName}, ${phone}, 'pharmacy', 'active')
       RETURNING id, email, full_name, phone, user_type, status
-    `
+    ` as any[]
 
     const user = userResult[0]
     const userId = user.id
 
-    // Create distributor profile
-    const distributorResult = await sql`
-      INSERT INTO distributor_profiles 
-      (user_id, company_name, license_number, gst_number, phone_number, address, city, state, pincode, service_areas, verification_status)
+    // Create pharmacy profile
+    const pharmacyResult = await sql`
+      INSERT INTO pharmacy_profiles 
+      (user_id, pharmacy_name, license_number, gst_number, address, city, state, pincode, is_24x7, verification_status)
       VALUES 
-      (${userId}, ${companyName}, ${licenseNumber}, ${gstNumber}, ${phone}, ${streetAddress}, ${city}, ${state}, ${pincode}, ${serviceAreas}, 'pending')
-      RETURNING id
+      (${userId}, ${pharmacyName}, ${licenseNumber}, ${gstNumber || null}, ${address}, ${city}, ${state}, ${pincode}, ${is24x7 || false}, 'pending')
+      RETURNING id, pharmacy_name, license_number, verification_status
     ` as any[]
 
     // Create session
@@ -167,14 +130,14 @@ export async function POST(request: Request) {
         fullName: user.full_name,
         userType: user.user_type,
       },
-      distributor: {
-        id: distributorResult[0].id,
-        companyName,
-        verificationStatus: "pending",
+      pharmacy: {
+        id: pharmacyResult[0].id,
+        pharmacyName: pharmacyResult[0].pharmacy_name,
+        verificationStatus: pharmacyResult[0].verification_status,
       },
     })
   } catch (error: any) {
-    console.error("[v0] Distributor registration error:", error)
+    console.error("[v0] Pharmacy registration error:", error)
 
     if (error.message?.includes("duplicate key")) {
       return NextResponse.json(
@@ -184,7 +147,7 @@ export async function POST(request: Request) {
     }
 
     return NextResponse.json(
-      { error: "Internal server error" },
+      { error: "Internal server error", details: String(error) },
       { status: 500 }
     )
   }
