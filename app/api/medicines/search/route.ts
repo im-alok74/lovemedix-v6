@@ -48,7 +48,7 @@ export async function GET(request: NextRequest) {
       orderBy = 'RAND() DESC'
     }
 
-    const results = await sql.unsafe(`
+    const results = await sql(`
       SELECT 
         m.id,
         m.name,
@@ -75,8 +75,9 @@ export async function GET(request: NextRequest) {
       LIMIT ${limit} OFFSET ${offset}
     `)
 
-    // Group by medicine to get best price
-    const medicines = results.reduce((acc: any[], med: any) => {
+    // Ensure results is an array and group by medicine to get best price
+    const resultsArray = Array.isArray(results) ? results : []
+    const medicines = resultsArray.reduce((acc: any[], med: any) => {
       const existing = acc.find((m) => m.id === med.id)
       if (!existing) {
         acc.push(med)
