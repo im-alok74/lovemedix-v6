@@ -48,8 +48,9 @@ export async function GET(request: NextRequest) {
       orderBy = 'RAND() DESC'
     }
 
-    const results = await sql(`
-      SELECT 
+    // Use query method for dynamic SQL since we're building conditions dynamically
+    const results = await sql.query(
+      `SELECT 
         m.id,
         m.name,
         m.generic_name,
@@ -72,8 +73,8 @@ export async function GET(request: NextRequest) {
       JOIN pharmacy_profiles pp ON pi.pharmacy_id = pp.id
       WHERE ${whereCondition}
       ORDER BY ${orderBy}
-      LIMIT ${limit} OFFSET ${offset}
-    `)
+      LIMIT ${limit} OFFSET ${offset}`
+    )
 
     // Ensure results is an array and group by medicine to get best price
     const resultsArray = Array.isArray(results) ? results : []

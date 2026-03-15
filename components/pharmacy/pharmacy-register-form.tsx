@@ -36,8 +36,8 @@ export function PharmacyRegisterForm() {
     setIsLoading(true)
 
     try {
-      // First, create user account
-      const userResponse = await fetch("/api/auth/signup", {
+      // Register pharmacy and user account in one call
+      const response = await fetch("/api/pharmacy/register", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -45,47 +45,30 @@ export function PharmacyRegisterForm() {
           password: formData.password,
           fullName: formData.fullName,
           phone: formData.phone,
-          userType: "pharmacy",
+          pharmacyName: formData.pharmacyName,
+          licenseNumber: formData.licenseNumber,
+          gstNumber: formData.gstNumber,
+          address: formData.address,
+          city: formData.city,
+          state: formData.state,
+          pincode: formData.pincode,
+          is24x7: formData.is24x7,
         }),
       })
 
-      const userData = await userResponse.json()
+      const data = await response.json()
 
-      if (userResponse.ok) {
-        // Then create pharmacy profile
-        const profileResponse = await fetch("/api/pharmacy/profile", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            pharmacyName: formData.pharmacyName,
-            licenseNumber: formData.licenseNumber,
-            gstNumber: formData.gstNumber,
-            address: formData.address,
-            city: formData.city,
-            state: formData.state,
-            pincode: formData.pincode,
-            is24x7: formData.is24x7,
-          }),
+      if (response.ok) {
+        toast({
+          title: "Success",
+          description: "Registration successful! Your application is under review.",
         })
-
-        if (profileResponse.ok) {
-          toast({
-            title: "Success",
-            description: "Registration successful! Your application is under review.",
-          })
-          router.push("/pharmacy/dashboard")
-          router.refresh()
-        } else {
-          toast({
-            title: "Error",
-            description: "Failed to create pharmacy profile",
-            variant: "destructive",
-          })
-        }
+        router.push("/pharmacy/dashboard")
+        router.refresh()
       } else {
         toast({
           title: "Error",
-          description: userData.error || "Failed to create account",
+          description: data.error || "Failed to complete registration",
           variant: "destructive",
         })
       }
